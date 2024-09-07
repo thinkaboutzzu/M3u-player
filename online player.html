@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Online Video Player</title>
+
+    <!-- Video.js for HLS playback -->
+    <link href="https://vjs.zencdn.net/7.11.4/video-js.css" rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1c1c1c;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .video-container {
+            max-width: 640px;
+            margin: 0 auto;
+            background-color: #333;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 30px rgba(0, 0, 0, 0.6);
+        }
+
+        .custom-player-controls {
+            background-color: #222;
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .control-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .control-buttons button {
+            background-color: #00a2e8;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .control-buttons button:hover {
+            background-color: #0073aa;
+        }
+
+        button {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Custom Online Video Player</h1>
+
+    <div class="video-container">
+        <video id="my-video" class="video-js vjs-default-skin" controls preload="auto" width="640" height="360" poster="https://i.imgur.com/TwdhHPz.png" data-setup='{}'>
+            <source id="videoSource" src="" type="application/x-mpegURL">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+
+    <div class="custom-player-controls">
+        <div class="control-buttons">
+            <button onclick="backTrack()">⏮️ Back</button>
+            <button onclick="playTrack()">▶️ Play</button>
+            <button onclick="pauseTrack()">⏸️ Pause</button>
+            <button onclick="stopTrack()">⏹️ Stop</button>
+            <button onclick="nextTrack()">⏭️ Next</button>
+        </div>
+    </div>
+
+    <div class="button-group">
+        <button onclick="addM3U()">Add M3U File</button>
+        <button onclick="editM3U()">Edit M3U File</button>
+        <button onclick="testM3U()">Test M3U File</button>
+        <button onclick="shareM3U()">Share M3U File</button>
+    </div>
+
+    <input type="file" id="m3uFileInput" style="display: none;" accept=".m3u, .m3u8" onchange="loadM3UFile(event)">
+
+    <!-- Video.js -->
+    <script src="https://vjs.zencdn.net/7.11.4/video.min.js"></script>
+
+    <script>
+        let m3uFileContent = '';
+        let mediaUrls = []; // Stores media URLs from the m3u file
+        let currentTrackIndex = 0;
+
+        // Add M3U/M3U8 file logic
+        function addM3U() {
+            document.getElementById('m3uFileInput').click();
+        }
+
+        // Load selected M3U/M3U8 file
+        function loadM3UFile(event) {
+            const file = event.target.files[0];
+            const player = videojs('my-video');
+
+            if (file) {
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    m3uFileContent = e.target.result;
+                    mediaUrls = parseM3UFile(m3uFileContent);
+
+                    if (mediaUrls.length > 0) {
+                        loadTrack(currentTrackIndex);
+                    } else {
+                        alert("No valid media URLs found in the M3U file.");
+                    }
+                };
+
+                reader.readAsText(file);
+            }
+        }
+
+        // Parse M3U file to extract the media URLs
+        function parseM3UFile(fileContent) {
+            const lines = fileContent.split('\n');
+            const urls = [];
+
+            for (const line of lines) {
+                // Skip comments and empty lines
+                if (line.trim() === '' || line.startsWith('#')) {
+                    continue;
+                }
+
+                // Collect valid media URLs
+                if (line.startsWith('http')) {
+                    urls.push(line.trim());
+                }
+            }
+
+            return urls;
+        }
+
+        // Load a specific track
+        function loadTrack(trackIndex) {
+            const videoSource = document.getElementById('videoSource');
+            const player = videojs('my-video');
+
+            if (mediaUrls[trackIndex]) {
+                videoSource.src = mediaUrls[trackIndex];
+                videoSource.type = 'application/x-mpegURL';
+                player.src({ src: mediaUrls[trackIndex], type: 'application/x-mpegURL' });
+                player.load();
+                player.play();
+            }
+        }
+
+        // Play the current track
+        function playTrack() {
+            const player = videojs('my-video');
+            player.play();
+        }
+
+        // Pause the current track
+        function pauseTrack() {
+            const player = videojs('my-video');
+            player.pause();
+        }
+
+        // Stop the current track
+        function stopTrack() {
+            const player = videojs('my-video');
+            player.pause();
+            player.currentTime(0);
+        }
+
+        // Play the next track
+        function nextTrack() {
+            if (currentTrackIndex < mediaUrls.length - 1) {
+                currentTrackIndex++;
+                loadTrack(currentTrackIndex);
+            } else {
+                alert("No more tracks.");
+            }
+        }
+
+        // Play the previous track
+        function backTrack() {
+            if (currentTrackIndex > 0) {
+                currentTrackIndex--;
+                loadTrack(currentTrackIndex);
+            } else {
+                alert("No previous track.");
+            }
+        }
+
+        // Edit M3U file using Notepad++ (or prompt user to use it)
+        function editM3U() {
+            const fileInput = document.getElementById('m3uFileInput');
+            if (!fileInput.files[0]) {
+                alert("Please add an M3U/M3U8 file before editing.");
+                return;
+            }
+
+            const filePath = fileInput.files[0].path || 'Your m3u/m3u8 file path here';
+            alert("You can use Notepad++ or any text editor to edit the M3U/M3U8 file.\nFile Path: " + filePath);
+
+            if (navigator.platform.indexOf('Win') !== -1) {
+                try {
+                    window.open('notepad++.exe ' + filePath);
+                } catch (error) {
+                    alert('Unable to open Notepad++. Please ensure it is installed.');
+                }
+            } else {
+                alert('Open the file manually in your preferred text editor.');
+            }
+        }
+
+        // Test M3U file logic (attempts to play the media)
+        function testM3U() {
+            const player = videojs('my-video');
+            if (player.paused()) {
+                player.play();
+            } else {
+                player.pause();
+            }
+        }
+
+        // Share M3U file logic
+        function shareM3U() {
+            const fileInput = document.getElementById('m3uFileInput');
+            if (!fileInput.files[0]) {
+                alert("Please add an M3U/M3U8 file before sharing.");
+                return;
+            }
+
+            const filePath = fileInput.files[0].name;
+            const shareText = encodeURIComponent(`Check out this M3U/M3U8 file: ${filePath}`);
+            const whatsappURL = `https://api.whatsapp.com/send?text=${shareText}`;
+            const emailURL = `mailto:?subject=Shared M3U File&body=${shareText}`;
+            const smsURL = `sms:?body=${shareText}`;
+            const shareitURL = `intent://send/#Intent;action=android.intent.action.SEND;type=text/plain;S.text=${shareText};end`;
+
+            const choice = prompt("Share via:\n1. Email\n2. WhatsApp\n3. SMS\n4. ShareIt", "1");
+
+            switch (choice) {
+                case '1':
+                    window.location.href = emailURL;
+                    break;
+                case '2':
+                    window.location.href = whatsappURL;
+                    break;
+                case '3':
+                    window.location.href = smsURL;
+                    break;
+                case '4':
+                    window.location.href = shareitURL;
+                    break;
+                default:
+                    alert('Invalid choice');
+            }
+        }
+    </script>
+
+</body>
+</html>
